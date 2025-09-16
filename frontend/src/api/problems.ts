@@ -76,13 +76,16 @@ export class ProblemsApi {
     const cached = getCache<PaginatedResponse<ProblemWithDetails>>(key);
     if (cached) return cached;
 
-    const res = await apiClient.get<PaginatedResponse<ProblemWithDetails>>(this.basePath, {
-      params: {
-        page,
-        limit,
-        ...filters,
+    const res = await apiClient.get<PaginatedResponse<ProblemWithDetails>>(
+      this.basePath,
+      {
+        params: {
+          page,
+          limit,
+          ...filters,
+        },
       },
-    });
+    );
     setCache(key, res);
     return res;
   }
@@ -129,7 +132,10 @@ export class ProblemsApi {
     };
 
     console.log("📤 Отправка данных проблемы (без ID):", backendData);
-    const res = await apiClient.post<APIResponse<Problem>>(this.basePath, backendData);
+    const res = await apiClient.post<APIResponse<Problem>>(
+      this.basePath,
+      backendData,
+    );
     invalidateCache("problems:");
     return res;
   }
@@ -210,7 +216,10 @@ export class ProblemsApi {
     offset: number = 0,
   ): Promise<APIResponse<ProblemWithDetails[]>> {
     const key = buildKey("problems:search", { query, limit, offset });
-    const cached = getCache<APIResponse<ProblemWithDetails[]>>(key, 2 * 60 * 1000);
+    const cached = getCache<APIResponse<ProblemWithDetails[]>>(
+      key,
+      2 * 60 * 1000,
+    );
     if (cached) return cached;
     const res = await apiClient.get<APIResponse<ProblemWithDetails[]>>(
       `${this.basePath}/search`,
@@ -246,7 +255,12 @@ export class ProblemsApi {
     limit: number = 20,
     offset: number = 0,
   ): Promise<APIResponse<ProblemWithDetails[]>> {
-    const key = buildKey("problems:byDevice", { deviceId, status, limit, offset });
+    const key = buildKey("problems:byDevice", {
+      deviceId,
+      status,
+      limit,
+      offset,
+    });
     const cached = getCache<APIResponse<ProblemWithDetails[]>>(key);
     if (cached) return cached;
     const res = await apiClient.get<APIResponse<ProblemWithDetails[]>>(
@@ -266,7 +280,12 @@ export class ProblemsApi {
     limit: number = 20,
     offset: number = 0,
   ): Promise<APIResponse<ProblemWithDetails[]>> {
-    const key = buildKey("problems:byCategory", { category, deviceId, limit, offset });
+    const key = buildKey("problems:byCategory", {
+      category,
+      deviceId,
+      limit,
+      offset,
+    });
     const cached = getCache<APIResponse<ProblemWithDetails[]>>(key);
     if (cached) return cached;
     const res = await apiClient.get<APIResponse<ProblemWithDetails[]>>(
@@ -336,7 +355,9 @@ export class ProblemsApi {
     const key = `problems:stats`;
     const cached = getCache<APIResponse<ProblemStats>>(key);
     if (cached) return cached;
-    const res = await apiClient.get<APIResponse<ProblemStats>>(`${this.basePath}/stats`);
+    const res = await apiClient.get<APIResponse<ProblemStats>>(
+      `${this.basePath}/stats`,
+    );
     setCache(key, res);
     return res;
   }
@@ -350,7 +371,10 @@ export class ProblemsApi {
     includeSteps: boolean = false,
   ): Promise<APIResponse<ProblemWithDetails[]>> {
     const key = buildKey("problems:export", { format, deviceId, includeSteps });
-    const cached = getCache<APIResponse<ProblemWithDetails[]>>(key, 60 * 60 * 1000);
+    const cached = getCache<APIResponse<ProblemWithDetails[]>>(
+      key,
+      60 * 60 * 1000,
+    );
     if (cached) return cached;
     const res = await apiClient.get<APIResponse<ProblemWithDetails[]>>(
       `${this.basePath}/export`,

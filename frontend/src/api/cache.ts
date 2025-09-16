@@ -11,7 +11,10 @@ function makeKey(key: string) {
   return `${LOCAL_STORAGE_PREFIX}${key}`;
 }
 
-export function getCache<T = any>(key: string, ttlMs: number = DEFAULT_TTL): T | null {
+export function getCache<T = any>(
+  key: string,
+  ttlMs: number = DEFAULT_TTL,
+): T | null {
   const now = Date.now();
   // memory first
   const mem = memoryCache.get(key);

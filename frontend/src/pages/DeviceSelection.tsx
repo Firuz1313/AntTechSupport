@@ -104,7 +104,8 @@ const DeviceSelection = () => {
             </p>
             {devices.length > 0 && (
               <p className="text-sm text-gray-500 mt-2">
-                {filteredDevices.length} из {devices.length} поддерживаемых устройств
+                {filteredDevices.length} из {devices.length} поддерживаемых
+                устройств
               </p>
             )}
           </div>
@@ -174,7 +175,10 @@ const DeviceSelection = () => {
               {isSearchingProblems ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {[...Array(4)].map((_, i) => (
-                    <Card key={i} className="bg-white border border-gray-200 rounded-2xl shadow-sm">
+                    <Card
+                      key={i}
+                      className="bg-white border border-gray-200 rounded-2xl shadow-sm"
+                    >
                       <CardContent className="p-4">
                         <Skeleton className="h-5 w-3/4 mb-2" />
                         <Skeleton className="h-4 w-1/2" />
@@ -182,13 +186,17 @@ const DeviceSelection = () => {
                     </Card>
                   ))}
                 </div>
-              ) : (problemsSearch?.data?.length ? (
+              ) : problemsSearch?.data?.length ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {problemsSearch.data.map((p: any) => (
                     <Card
                       key={p.id}
                       className="group cursor-pointer bg-white border border-gray-200 rounded-2xl shadow-sm hover:shadow-md transition-all"
-                      onClick={() => navigate(`/diagnostic/${p.deviceId || p.device_id}/${p.id}`)}
+                      onClick={() =>
+                        navigate(
+                          `/diagnostic/${p.deviceId || p.device_id}/${p.id}`,
+                        )
+                      }
                     >
                       <CardContent className="p-4">
                         <div className="text-gray-900 font-medium">
@@ -203,7 +211,7 @@ const DeviceSelection = () => {
                 </div>
               ) : (
                 <div className="text-sm text-gray-500">Ничего не найдено</div>
-              ))}
+              )}
             </div>
           )}
 

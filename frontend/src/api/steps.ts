@@ -434,7 +434,11 @@ export class StepsApi {
 
     const response = await apiClient.post<APIResponse<Step>>(
       `${this.basePath}/insert`,
-      { problem_id: problemId, after_step_number: afterStepNumber, ...backendData },
+      {
+        problem_id: problemId,
+        after_step_number: afterStepNumber,
+        ...backendData,
+      },
     );
 
     if (response.data) {

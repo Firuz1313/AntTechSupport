@@ -1,7 +1,9 @@
+import { useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, AlertTriangle } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { ArrowLeft, AlertTriangle, Search } from "lucide-react";
 import { useProblems } from "@/hooks/useProblems";
 import { useDevices } from "@/hooks/useDevices";
 
@@ -66,6 +68,8 @@ const ProblemsPage = () => {
 
   const device = devices.find((d: any) => d.id === deviceId);
 
+  const [query, setQuery] = useState("");
+
   // Явная фильтрация по deviceId на случай, если бэкенд вернул смешанные данные
   const filteredProblems = apiProblems.filter(
     (p: any) => p.deviceId === deviceId || p.device_id === deviceId,
@@ -78,6 +82,16 @@ const ProblemsPage = () => {
       : deviceId === "openbox"
         ? defaultOpenBoxProblems
         : [];
+
+  const visibleProblems = useMemo(() => {
+    if (!query.trim()) return displayProblems;
+    const q = query.toLowerCase();
+    return displayProblems.filter((p: any) =>
+      [p.title, p.description]
+        .filter(Boolean)
+        .some((v: string) => v.toLowerCase().includes(q)),
+    );
+  }, [displayProblems, query]);
 
   const handleProblemSelect = (problemId: string) => {
     navigate(`/diagnostic/${deviceId}/${problemId}`);
@@ -135,13 +149,29 @@ const ProblemsPage = () => {
       <main className="container mx-auto px-4 py-12">
         <div className="max-w-6xl mx-auto">
           {/* Page Title */}
-          <div className="text-center mb-8">
+          <div className="text-center mb-6">
             <h1 className="text-4xl font-bold text-gray-900 mb-4">
               Какая проблема с {deviceName}?
             </h1>
             <p className="text-xl text-gray-600">
               Выберите проблему, которая лучше всего описывает вашу ситуацию
             </p>
+          </div>
+
+          {/* Search Bar */}
+          <div className="max-w-3xl mx-auto mb-10">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+              <Input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder='Поиск проблем (например, "Нет сигнала")'
+                className="pl-10 h-12 rounded-2xl border-gray-200 bg-white shadow-sm focus-visible:ring-2"
+              />
+            </div>
+            <div className="text-sm text-gray-500 mt-2 text-center">
+              Найдено: {visibleProblems.length} из {displayProblems.length}
+            </div>
           </div>
 
           {/* Device Info Card */}
@@ -197,7 +227,7 @@ const ProblemsPage = () => {
             </Card>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {displayProblems.map((problem) => (
+              {visibleProblems.map((problem) => (
                 <Card
                   key={problem.id}
                   className="group cursor-pointer bg-white border border-gray-200 rounded-2xl shadow-sm hover:shadow-lg transition-all duration-300 hover:scale-105"

@@ -7,6 +7,7 @@ import {
   TVInterfaceListResponse,
 } from "@/types/tvInterface";
 import { apiClient, handleApiError } from "./client";
+import { getCache, setCache, invalidateCache, buildKey } from "./cache";
 
 // API endpoint base
 const API_ENDPOINT = "/tv-interfaces";
@@ -16,20 +17,20 @@ export const tvInterfacesAPI = {
   // Получить все TV интерфейсы
   async getAll(filters?: TVInterfaceFilters): Promise<TVInterfaceListResponse> {
     try {
+      const key = buildKey("tv-interfaces:getAll", filters || {});
+      const cached = getCache<TVInterface[]>(key);
+      if (cached) return { success: true, data: cached };
+
       const response = await apiClient.get<TVInterfaceListResponse>(
         API_ENDPOINT,
         { params: filters },
       );
 
-      return {
-        success: true,
-        data: response.data || [],
-      };
+      const data = response.data || [];
+      setCache(key, data);
+      return { success: true, data };
     } catch (error) {
-      return {
-        success: false,
-        error: handleApiError(error),
-      };
+      return { success: false, error: handleApiError(error) };
     }
   },
 
@@ -37,25 +38,20 @@ export const tvInterfacesAPI = {
   async getById(id: string): Promise<TVInterfaceApiResponse> {
     try {
       if (!id) {
-        return {
-          success: false,
-          error: "ID TV интерфейса обязателен",
-        };
+        return { success: false, error: "ID TV интерфейса обязателен" };
       }
+      const key = `tv-interfaces:getById:${id}`;
+      const cached = getCache<TVInterface>(key);
+      if (cached) return { success: true, data: cached };
 
       const response = await apiClient.get<TVInterfaceApiResponse>(
         `${API_ENDPOINT}/${id}`,
       );
 
-      return {
-        success: true,
-        data: response.data,
-      };
+      setCache(key, response.data);
+      return { success: true, data: response.data };
     } catch (error) {
-      return {
-        success: false,
-        error: handleApiError(error),
-      };
+      return { success: false, error: handleApiError(error) };
     }
   },
 
@@ -63,25 +59,21 @@ export const tvInterfacesAPI = {
   async getByDeviceId(deviceId: string): Promise<TVInterfaceListResponse> {
     try {
       if (!deviceId) {
-        return {
-          success: false,
-          error: "ID устройства обязателен",
-        };
+        return { success: false, error: "ID устройства обязателен" };
       }
+      const key = `tv-interfaces:getByDeviceId:${deviceId}`;
+      const cached = getCache<TVInterface[]>(key);
+      if (cached) return { success: true, data: cached };
 
       const response = await apiClient.get<TVInterfaceListResponse>(
         `${API_ENDPOINT}/device/${deviceId}`,
       );
 
-      return {
-        success: true,
-        data: response.data || [],
-      };
+      const data = response.data || [];
+      setCache(key, data);
+      return { success: true, data };
     } catch (error) {
-      return {
-        success: false,
-        error: handleApiError(error),
-      };
+      return { success: false, error: handleApiError(error) };
     }
   },
 
@@ -110,7 +102,7 @@ export const tvInterfacesAPI = {
         };
       }
 
-      // Подготавливаем данные для отправки на бэкенд
+      // Подготавливае�� данные для отправки на бэкенд
       const requestData = {
         name: data.name.trim(),
         description: data.description?.trim() || "",
@@ -125,6 +117,9 @@ export const tvInterfacesAPI = {
         API_ENDPOINT,
         requestData,
       );
+
+      // invalidate caches
+      invalidateCache("tv-interfaces:");
 
       return {
         success: true,
@@ -173,6 +168,11 @@ export const tvInterfacesAPI = {
         requestData,
       );
 
+      // update and invalidate caches
+      setCache(`tv-interfaces:getById:${id}`, response.data);
+      invalidateCache("tv-interfaces:getAll");
+      invalidateCache("tv-interfaces:getByDeviceId");
+
       return {
         success: true,
         data: response.data,
@@ -200,9 +200,12 @@ export const tvInterfacesAPI = {
         `${API_ENDPOINT}/${id}`,
       );
 
+      // invalidate
+      invalidateCache("tv-interfaces:");
+
       return {
         success: true,
-        message: response.message || "TV инте��фейс успешно удален",
+        message: response.message || "TV интерфейс успешно удален",
       };
     } catch (error) {
       return {
@@ -226,10 +229,15 @@ export const tvInterfacesAPI = {
         `${API_ENDPOINT}/${id}/toggle`,
       );
 
+      // invalidate related caches
+      setCache(`tv-interfaces:getById:${id}`, response.data);
+      invalidateCache("tv-interfaces:getAll");
+      invalidateCache("tv-interfaces:getByDeviceId");
+
       return {
         success: true,
         data: response.data,
-        message: response.message || "Статус TV интерфейс�� изменен",
+        message: response.message || "Статус TV интерфейса изменен",
       };
     } catch (error) {
       return {
@@ -259,6 +267,8 @@ export const tvInterfacesAPI = {
         requestData,
       );
 
+      invalidateCache("tv-interfaces:");
+
       return {
         success: true,
         data: response.data,
@@ -275,14 +285,16 @@ export const tvInterfacesAPI = {
   // Получить статистику TV интерфейсов
   async getStats(): Promise<TVInterfaceApiResponse> {
     try {
+      const key = `tv-interfaces:getStats`;
+      const cached = getCache<any>(key);
+      if (cached) return { success: true, data: cached };
+
       const response = await apiClient.get<TVInterfaceApiResponse>(
         `${API_ENDPOINT}/stats`,
       );
 
-      return {
-        success: true,
-        data: response.data,
-      };
+      setCache(key, response.data);
+      return { success: true, data: response.data };
     } catch (error) {
       return {
         success: false,

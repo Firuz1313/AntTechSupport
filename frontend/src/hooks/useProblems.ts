@@ -33,8 +33,8 @@ export const useProblems = (
   return useQuery({
     queryKey: problemKeys.list({ page, limit, ...filters }),
     queryFn: () => problemsApi.getProblems(page, limit, filters),
-    staleTime: 2 * 60 * 1000, // 2 minutes
-    cacheTime: 5 * 60 * 1000, // 5 minutes cache
+    staleTime: 10 * 60 * 1000,
+    cacheTime: 30 * 60 * 1000,
     refetchOnWindowFocus: false,
     keepPreviousData: true,
     retry: 3,
@@ -145,7 +145,7 @@ export const useDeleteProblem = () => {
       return problemsApi.deleteProblem(id, force);
     },
     onSuccess: (response, { id }) => {
-      console.log(`✅ Hook: Delete success for ${id}:`, response);
+      console.log(`�� Hook: Delete success for ${id}:`, response);
       queryClient.invalidateQueries({ queryKey: problemKeys.lists() });
       queryClient.removeQueries({ queryKey: problemKeys.detail(id) });
       queryClient.invalidateQueries({ queryKey: problemKeys.stats() });

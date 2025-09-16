@@ -1,10 +1,13 @@
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { ArrowLeft, AlertCircle, Tv } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { ArrowLeft, AlertCircle, Tv, Search } from "lucide-react";
 import { useDevices } from "@/hooks/useDevices";
+import { useProblemSearch } from "@/hooks/useProblems";
 
 const DeviceSelection = () => {
   const navigate = useNavigate();
@@ -14,8 +17,22 @@ const DeviceSelection = () => {
     error,
   } = useDevices(1, 50, { status: "active" });
 
+  const [query, setQuery] = useState("");
+  const { data: problemsSearch, isLoading: isSearchingProblems } =
+    useProblemSearch(query, 12);
+
   // Извлекаем массивы данных из ответа API
   const devices = devicesResponse?.data || [];
+
+  const filteredDevices = useMemo(() => {
+    if (!query.trim()) return devices;
+    const q = query.toLowerCase();
+    return devices.filter((d: any) =>
+      [d.name, d.brand, d.model, d.description]
+        .filter(Boolean)
+        .some((v: string) => v.toLowerCase().includes(q)),
+    );
+  }, [devices, query]);
 
   const handleDeviceSelect = (deviceId: string) => {
     navigate(`/problems/${deviceId}`);
@@ -77,7 +94,7 @@ const DeviceSelection = () => {
       <main className="container mx-auto px-4 py-12">
         <div className="max-w-4xl mx-auto">
           {/* Page Title */}
-          <div className="text-center mb-12">
+          <div className="text-center mb-8">
             <h1 className="text-4xl font-bold text-gray-900 mb-4">
               Выбор приставки
             </h1>
@@ -87,9 +104,23 @@ const DeviceSelection = () => {
             </p>
             {devices.length > 0 && (
               <p className="text-sm text-gray-500 mt-2">
-                {devices.length} поддерживаемых устройств
+                {filteredDevices.length} из {devices.length} поддерживаемых
+                устройств
               </p>
             )}
+          </div>
+
+          {/* Search Bar */}
+          <div className="max-w-2xl mx-auto mb-10">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+              <Input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Поиск приставки (например, Openbox, U2C, мо��ель)"
+                className="pl-10 h-12 rounded-2xl border-gray-200 bg-white shadow-sm focus-visible:ring-2"
+              />
+            </div>
           </div>
 
           {/* Loading State */}
@@ -135,10 +166,59 @@ const DeviceSelection = () => {
             </div>
           )}
 
+          {/* Quick Problem Results */}
+          {query.trim().length >= 2 && (
+            <div className="max-w-4xl mx-auto mb-12">
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                Найденные проблемы
+              </h3>
+              {isSearchingProblems ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {[...Array(4)].map((_, i) => (
+                    <Card
+                      key={i}
+                      className="bg-white border border-gray-200 rounded-2xl shadow-sm"
+                    >
+                      <CardContent className="p-4">
+                        <Skeleton className="h-5 w-3/4 mb-2" />
+                        <Skeleton className="h-4 w-1/2" />
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              ) : problemsSearch?.data?.length ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {problemsSearch.data.map((p: any) => (
+                    <Card
+                      key={p.id}
+                      className="group cursor-pointer bg-white border border-gray-200 rounded-2xl shadow-sm hover:shadow-md transition-all"
+                      onClick={() =>
+                        navigate(
+                          `/diagnostic/${p.deviceId || p.device_id}/${p.id}`,
+                        )
+                      }
+                    >
+                      <CardContent className="p-4">
+                        <div className="text-gray-900 font-medium">
+                          {p.title}
+                        </div>
+                        <div className="text-sm text-gray-500 mt-1">
+                          {p.deviceName || p.device_name}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-sm text-gray-500">Ничего не найдено</div>
+              )}
+            </div>
+          )}
+
           {/* Devices Grid */}
           {!isLoading && !error && devices.length > 0 && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-              {devices.map((device) => (
+              {filteredDevices.map((device) => (
                 <Card
                   key={device.id}
                   className="group cursor-pointer bg-white border border-gray-200 rounded-2xl shadow-sm hover:shadow-lg transition-all duration-300 hover:scale-105"

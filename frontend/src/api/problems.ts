@@ -1,4 +1,5 @@
 import { apiClient } from "./client";
+import { getCache, setCache, invalidateCache, buildKey } from "./cache";
 import {
   Problem,
   APIResponse,
@@ -71,13 +72,22 @@ export class ProblemsApi {
     limit: number = 20,
     filters: ProblemFilters = {},
   ): Promise<PaginatedResponse<ProblemWithDetails>> {
-    return apiClient.get<PaginatedResponse<ProblemWithDetails>>(this.basePath, {
-      params: {
-        page,
-        limit,
-        ...filters,
+    const key = buildKey("problems:get", { page, limit, filters });
+    const cached = getCache<PaginatedResponse<ProblemWithDetails>>(key);
+    if (cached) return cached;
+
+    const res = await apiClient.get<PaginatedResponse<ProblemWithDetails>>(
+      this.basePath,
+      {
+        params: {
+          page,
+          limit,
+          ...filters,
+        },
       },
-    });
+    );
+    setCache(key, res);
+    return res;
   }
 
   /**
@@ -87,12 +97,16 @@ export class ProblemsApi {
     id: string,
     includeDetails: boolean = false,
   ): Promise<APIResponse<ProblemWithDetails>> {
-    return apiClient.get<APIResponse<ProblemWithDetails>>(
+    const key = `problems:get:${id}:${includeDetails ? 1 : 0}`;
+    const cached = getCache<APIResponse<ProblemWithDetails>>(key);
+    if (cached) return cached;
+
+    const res = await apiClient.get<APIResponse<ProblemWithDetails>>(
       `${this.basePath}/${id}`,
-      {
-        params: { include_details: includeDetails },
-      },
+      { params: { include_details: includeDetails } },
     );
+    setCache(key, res);
+    return res;
   }
 
   /**
@@ -118,7 +132,12 @@ export class ProblemsApi {
     };
 
     console.log("📤 Отправка данных проблемы (без ID):", backendData);
-    return apiClient.post<APIResponse<Problem>>(this.basePath, backendData);
+    const res = await apiClient.post<APIResponse<Problem>>(
+      this.basePath,
+      backendData,
+    );
+    invalidateCache("problems:");
+    return res;
   }
 
   /**
@@ -152,10 +171,12 @@ export class ProblemsApi {
     if (data.metadata !== undefined) backendData.metadata = data.metadata;
 
     console.log("📤 Обновление данных проблемы:", backendData);
-    return apiClient.put<APIResponse<Problem>>(
+    const res = await apiClient.put<APIResponse<Problem>>(
       `${this.basePath}/${id}`,
       backendData,
     );
+    invalidateCache("problems:");
+    return res;
   }
 
   /**
@@ -168,11 +189,10 @@ export class ProblemsApi {
     console.log(`🗑️ API: Deleting problem ${id} with force=${force}`);
     const response = await apiClient.delete<APIResponse<Problem>>(
       `${this.basePath}/${id}`,
-      {
-        params: { force: force.toString() },
-      },
+      { params: { force: force.toString() } },
     );
     console.log(`✅ API: Delete response:`, response);
+    invalidateCache("problems:");
     return response;
   }
 
@@ -180,9 +200,11 @@ export class ProblemsApi {
    * Восстановление архивированной проблемы
    */
   async restoreProblem(id: string): Promise<APIResponse<Problem>> {
-    return apiClient.post<APIResponse<Problem>>(
+    const res = await apiClient.post<APIResponse<Problem>>(
       `${this.basePath}/${id}/restore`,
     );
+    invalidateCache("problems:");
+    return res;
   }
 
   /**
@@ -193,12 +215,18 @@ export class ProblemsApi {
     limit: number = 20,
     offset: number = 0,
   ): Promise<APIResponse<ProblemWithDetails[]>> {
-    return apiClient.get<APIResponse<ProblemWithDetails[]>>(
-      `${this.basePath}/search`,
-      {
-        params: { q: query, limit, offset },
-      },
+    const key = buildKey("problems:search", { query, limit, offset });
+    const cached = getCache<APIResponse<ProblemWithDetails[]>>(
+      key,
+      2 * 60 * 1000,
     );
+    if (cached) return cached;
+    const res = await apiClient.get<APIResponse<ProblemWithDetails[]>>(
+      `${this.basePath}/search`,
+      { params: { q: query, limit, offset } },
+    );
+    setCache(key, res);
+    return res;
   }
 
   /**
@@ -207,12 +235,15 @@ export class ProblemsApi {
   async getPopularProblems(
     limit: number = 10,
   ): Promise<APIResponse<ProblemWithDetails[]>> {
-    return apiClient.get<APIResponse<ProblemWithDetails[]>>(
+    const key = `problems:popular:${limit}`;
+    const cached = getCache<APIResponse<ProblemWithDetails[]>>(key);
+    if (cached) return cached;
+    const res = await apiClient.get<APIResponse<ProblemWithDetails[]>>(
       `${this.basePath}/popular`,
-      {
-        params: { limit },
-      },
+      { params: { limit } },
     );
+    setCache(key, res);
+    return res;
   }
 
   /**
@@ -224,12 +255,20 @@ export class ProblemsApi {
     limit: number = 20,
     offset: number = 0,
   ): Promise<APIResponse<ProblemWithDetails[]>> {
-    return apiClient.get<APIResponse<ProblemWithDetails[]>>(
+    const key = buildKey("problems:byDevice", {
+      deviceId,
+      status,
+      limit,
+      offset,
+    });
+    const cached = getCache<APIResponse<ProblemWithDetails[]>>(key);
+    if (cached) return cached;
+    const res = await apiClient.get<APIResponse<ProblemWithDetails[]>>(
       `${this.basePath}/device/${deviceId}`,
-      {
-        params: { status, limit, offset },
-      },
+      { params: { status, limit, offset } },
     );
+    setCache(key, res);
+    return res;
   }
 
   /**
@@ -241,12 +280,20 @@ export class ProblemsApi {
     limit: number = 20,
     offset: number = 0,
   ): Promise<APIResponse<ProblemWithDetails[]>> {
-    return apiClient.get<APIResponse<ProblemWithDetails[]>>(
+    const key = buildKey("problems:byCategory", {
+      category,
+      deviceId,
+      limit,
+      offset,
+    });
+    const cached = getCache<APIResponse<ProblemWithDetails[]>>(key);
+    if (cached) return cached;
+    const res = await apiClient.get<APIResponse<ProblemWithDetails[]>>(
       `${this.basePath}/category/${category}`,
-      {
-        params: { device_id: deviceId, limit, offset },
-      },
+      { params: { device_id: deviceId, limit, offset } },
     );
+    setCache(key, res);
+    return res;
   }
 
   /**
@@ -268,18 +315,22 @@ export class ProblemsApi {
    * Публикация проблемы
    */
   async publishProblem(id: string): Promise<APIResponse<Problem>> {
-    return apiClient.post<APIResponse<Problem>>(
+    const res = await apiClient.post<APIResponse<Problem>>(
       `${this.basePath}/${id}/publish`,
     );
+    invalidateCache("problems:");
+    return res;
   }
 
   /**
    * Снятие проблемы с публикации
    */
   async unpublishProblem(id: string): Promise<APIResponse<Problem>> {
-    return apiClient.post<APIResponse<Problem>>(
+    const res = await apiClient.post<APIResponse<Problem>>(
       `${this.basePath}/${id}/unpublish`,
     );
+    invalidateCache("problems:");
+    return res;
   }
 
   /**
@@ -289,19 +340,26 @@ export class ProblemsApi {
     id: string,
     sessionResult: "success" | "failure",
   ): Promise<APIResponse<Problem>> {
-    return apiClient.post<APIResponse<Problem>>(
+    const res = await apiClient.post<APIResponse<Problem>>(
       `${this.basePath}/${id}/update-stats`,
-      {
-        session_result: sessionResult,
-      },
+      { session_result: sessionResult },
     );
+    invalidateCache("problems:");
+    return res;
   }
 
   /**
    * Получение статистики проблем
    */
   async getProblemStats(): Promise<APIResponse<ProblemStats>> {
-    return apiClient.get<APIResponse<ProblemStats>>(`${this.basePath}/stats`);
+    const key = `problems:stats`;
+    const cached = getCache<APIResponse<ProblemStats>>(key);
+    if (cached) return cached;
+    const res = await apiClient.get<APIResponse<ProblemStats>>(
+      `${this.basePath}/stats`,
+    );
+    setCache(key, res);
+    return res;
   }
 
   /**
@@ -312,12 +370,18 @@ export class ProblemsApi {
     deviceId?: string,
     includeSteps: boolean = false,
   ): Promise<APIResponse<ProblemWithDetails[]>> {
-    return apiClient.get<APIResponse<ProblemWithDetails[]>>(
-      `${this.basePath}/export`,
-      {
-        params: { format, device_id: deviceId, include_steps: includeSteps },
-      },
+    const key = buildKey("problems:export", { format, deviceId, includeSteps });
+    const cached = getCache<APIResponse<ProblemWithDetails[]>>(
+      key,
+      60 * 60 * 1000,
     );
+    if (cached) return cached;
+    const res = await apiClient.get<APIResponse<ProblemWithDetails[]>>(
+      `${this.basePath}/export`,
+      { params: { format, device_id: deviceId, include_steps: includeSteps } },
+    );
+    setCache(key, res);
+    return res;
   }
 }
 

@@ -56,6 +56,7 @@ function App() {
               </Layout>
             }
           />
+          <Route path="/device" element={<Navigate to="/devices" replace />} />
           <Route
             path="/problems/:deviceId"
             element={

@@ -23,8 +23,8 @@ export const useSteps = (
   return useQuery({
     queryKey: stepKeys.list({ page, limit, ...filters }),
     queryFn: () => stepsApi.getSteps(page, limit, filters),
-    staleTime: 2 * 60 * 1000, // 2 minutes
-    cacheTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 10 * 60 * 1000,
+    cacheTime: 30 * 60 * 1000,
     refetchOnWindowFocus: false,
     keepPreviousData: true,
     retry: 3,

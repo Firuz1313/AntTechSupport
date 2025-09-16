@@ -7,6 +7,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Input } from "@/components/ui/input";
 import { ArrowLeft, AlertCircle, Tv, Search } from "lucide-react";
 import { useDevices } from "@/hooks/useDevices";
+import { useProblemSearch } from "@/hooks/useProblems";
 
 const DeviceSelection = () => {
   const navigate = useNavigate();
@@ -17,6 +18,8 @@ const DeviceSelection = () => {
   } = useDevices(1, 50, { status: "active" });
 
   const [query, setQuery] = useState("");
+  const { data: problemsSearch, isLoading: isSearchingProblems } =
+    useProblemSearch(query, 12);
 
   // Извлекаем массивы данных из ответа API
   const devices = devicesResponse?.data || [];
@@ -113,7 +116,7 @@ const DeviceSelection = () => {
               <Input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Поиск приставки (например, Openbox, U2C, модель)"
+                placeholder="Поиск приставки (например, Openbox, U2C, мо��ель)"
                 className="pl-10 h-12 rounded-2xl border-gray-200 bg-white shadow-sm focus-visible:ring-2"
               />
             </div>
@@ -159,6 +162,48 @@ const DeviceSelection = () => {
               <p className="text-gray-600">
                 В настоящее время нет доступных устройств для диагностики.
               </p>
+            </div>
+          )}
+
+          {/* Quick Problem Results */}
+          {query.trim().length >= 2 && (
+            <div className="max-w-4xl mx-auto mb-12">
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                Найденные проблемы
+              </h3>
+              {isSearchingProblems ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {[...Array(4)].map((_, i) => (
+                    <Card key={i} className="bg-white border border-gray-200 rounded-2xl shadow-sm">
+                      <CardContent className="p-4">
+                        <Skeleton className="h-5 w-3/4 mb-2" />
+                        <Skeleton className="h-4 w-1/2" />
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              ) : (problemsSearch?.data?.length ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {problemsSearch.data.map((p: any) => (
+                    <Card
+                      key={p.id}
+                      className="group cursor-pointer bg-white border border-gray-200 rounded-2xl shadow-sm hover:shadow-md transition-all"
+                      onClick={() => navigate(`/diagnostic/${p.deviceId || p.device_id}/${p.id}`)}
+                    >
+                      <CardContent className="p-4">
+                        <div className="text-gray-900 font-medium">
+                          {p.title}
+                        </div>
+                        <div className="text-sm text-gray-500 mt-1">
+                          {p.deviceName || p.device_name}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-sm text-gray-500">Ничего не найдено</div>
+              ))}
             </div>
           )}
 

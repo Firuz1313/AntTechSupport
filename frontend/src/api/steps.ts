@@ -202,6 +202,11 @@ export class StepsApi {
     limit: number = 20,
     filters: StepFilters = {},
   ): Promise<PaginatedResponse<StepWithDetails>> {
+    const { getCache, setCache, buildKey } = await import("./cache");
+    const key = buildKey("steps:get", { page, limit, filters });
+    const cached = getCache<PaginatedResponse<StepWithDetails>>(key);
+    if (cached) return cached;
+
     const response = await apiClient.get<PaginatedResponse<StepWithDetails>>(
       this.basePath,
       {
@@ -216,11 +221,11 @@ export class StepsApi {
       },
     );
 
-    // Transform data from backend
     if (response.data && Array.isArray(response.data)) {
       response.data = response.data.map(transformFromBackend);
     }
 
+    setCache(key, response);
     return response;
   }
 
@@ -274,11 +279,12 @@ export class StepsApi {
       backendData,
     );
 
-    // Transform response from backend
     if (response.data) {
       response.data = transformFromBackend(response.data);
     }
 
+    const { invalidateCache } = await import("./cache");
+    invalidateCache("steps:");
     return response;
   }
 
@@ -300,11 +306,12 @@ export class StepsApi {
       backendData,
     );
 
-    // Transform response from backend
     if (response.data) {
       response.data = transformFromBackend(response.data);
     }
 
+    const { invalidateCache } = await import("./cache");
+    invalidateCache("steps:");
     return response;
   }
 
@@ -318,21 +325,20 @@ export class StepsApi {
   ): Promise<APIResponse<Step>> {
     const response = await apiClient.delete<APIResponse<Step>>(
       `${this.basePath}/${id}`,
-      {
-        params: { force, reorder },
-      },
+      { params: { force, reorder } },
     );
 
-    // Transform response from backend
     if (response.data) {
       response.data = transformFromBackend(response.data);
     }
 
+    const { invalidateCache } = await import("./cache");
+    invalidateCache("steps:");
     return response;
   }
 
   /**
-   * Восстановление архивированного шага
+   * Восстановление архивированно��о шага
    */
   async restoreStep(id: string): Promise<APIResponse<Step>> {
     const response = await apiClient.post<APIResponse<Step>>(
@@ -354,18 +360,21 @@ export class StepsApi {
     problemId: string,
     isActive: boolean = true,
   ): Promise<APIResponse<StepWithDetails[]>> {
+    const { getCache, setCache, buildKey } = await import("./cache");
+    const key = buildKey("steps:byProblem", { problemId, isActive });
+    const cached = getCache<APIResponse<StepWithDetails[]>>(key);
+    if (cached) return cached;
+
     const response = await apiClient.get<APIResponse<StepWithDetails[]>>(
       `${this.basePath}/problem/${problemId}`,
-      {
-        params: { is_active: isActive },
-      },
+      { params: { is_active: isActive } },
     );
 
-    // Transform data from backend
     if (response.data && Array.isArray(response.data)) {
       response.data = response.data.map(transformFromBackend);
     }
 
+    setCache(key, response);
     return response;
   }
 
@@ -401,17 +410,15 @@ export class StepsApi {
   ): Promise<APIResponse<Step[]>> {
     const response = await apiClient.put<APIResponse<Step[]>>(
       `${this.basePath}/reorder`,
-      {
-        problem_id: problemId,
-        step_ids: stepIds,
-      },
+      { problem_id: problemId, step_ids: stepIds },
     );
 
-    // Transform data from backend
     if (response.data && Array.isArray(response.data)) {
       response.data = response.data.map(transformFromBackend);
     }
 
+    const { invalidateCache } = await import("./cache");
+    invalidateCache("steps:");
     return response;
   }
 
@@ -427,18 +434,15 @@ export class StepsApi {
 
     const response = await apiClient.post<APIResponse<Step>>(
       `${this.basePath}/insert`,
-      {
-        problem_id: problemId,
-        after_step_number: afterStepNumber,
-        ...backendData,
-      },
+      { problem_id: problemId, after_step_number: afterStepNumber, ...backendData },
     );
 
-    // Transform response from backend
     if (response.data) {
       response.data = transformFromBackend(response.data);
     }
 
+    const { invalidateCache } = await import("./cache");
+    invalidateCache("steps:");
     return response;
   }
 
@@ -451,16 +455,15 @@ export class StepsApi {
   ): Promise<APIResponse<Step>> {
     const response = await apiClient.post<APIResponse<Step>>(
       `${this.basePath}/${id}/duplicate`,
-      {
-        target_problem_id: targetProblemId,
-      },
+      { target_problem_id: targetProblemId },
     );
 
-    // Transform response from backend
     if (response.data) {
       response.data = transformFromBackend(response.data);
     }
 
+    const { invalidateCache } = await import("./cache");
+    invalidateCache("steps:");
     return response;
   }
 
@@ -481,7 +484,7 @@ export class StepsApi {
   }
 
   /**
-   * Получение предыдущего шага
+   * Получение ��редыдущего шага
    */
   async getPreviousStep(id: string): Promise<APIResponse<Step>> {
     const response = await apiClient.get<APIResponse<Step>>(
@@ -524,11 +527,12 @@ export class StepsApi {
       `${this.basePath}/fix-numbering/${problemId}`,
     );
 
-    // Transform data from backend
     if (response.data && Array.isArray(response.data)) {
       response.data = response.data.map(transformFromBackend);
     }
 
+    const { invalidateCache } = await import("./cache");
+    invalidateCache("steps:");
     return response;
   }
 }
